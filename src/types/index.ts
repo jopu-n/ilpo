@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { Player } from "discord-player";
 
 export interface Command {
   data: SlashCommandBuilder;
