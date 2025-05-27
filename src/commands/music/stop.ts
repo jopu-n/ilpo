@@ -4,15 +4,15 @@ import { useQueue } from "discord-player";
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("stop")
-    .setDescription("Stop music and clear the queue"),
+    .setDescription("Lopeta musiikki ja tyhjennä jono"),
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = useQueue(interaction.guild!.id);
 
     if (!queue || !queue.currentTrack) {
-      return interaction.reply("❌ No music is currently being played!");
+      return interaction.reply("Ei ol mittä musiikki soimas!");
     }
 
     queue.delete();
-    return interaction.reply("⏹️ Stopped the music and cleared the queue!");
+    return interaction.reply("Musiikki lopetettii ja jono tyhjennettii!");
   },
 };

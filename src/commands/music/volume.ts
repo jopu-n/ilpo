@@ -4,11 +4,11 @@ import { useQueue } from "discord-player";
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("volume")
-    .setDescription("Change or check the music volume")
+    .setDescription("Muuta tai tarkista äänenvoimakkuus")
     .addIntegerOption((option) =>
       option
         .setName("level")
-        .setDescription("Volume level (0-100)")
+        .setDescription("Äänenvoimakkuustaso (0-100)")
         .setMinValue(0)
         .setMaxValue(100)
     ),
@@ -16,18 +16,16 @@ module.exports = {
     const queue = useQueue(interaction.guild!.id);
 
     if (!queue || !queue.currentTrack) {
-      return interaction.reply("❌ No music is currently being played!");
+      return interaction.reply("Ei ol mittä musiikki soimas!");
     }
 
     const volume = interaction.options.getInteger("level");
 
     if (volume === null) {
-      return interaction.reply(
-        `🔊 Current volume is **${queue.node.volume}%**`
-      );
+      return interaction.reply(`Äänenvoimakkuus o nyt ${queue.node.volume}%`);
     }
 
     queue.node.setVolume(volume);
-    return interaction.reply(`🔊 Volume set to **${volume}%**!`);
+    return interaction.reply(`Äänenvoimakkuus pistetty ${volume} prossaan!`);
   },
 };

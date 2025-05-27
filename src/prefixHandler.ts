@@ -22,8 +22,8 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "play",
       aliases: ["p", "soita", "soitahan"],
-      description: "Play a song from YouTube",
-      usage: "play <song name or URL>",
+      description: "Soita biisi YouTubesta",
+      usage: "play <biisin nimi tai URL>",
       execute: async (
         message: Message<boolean>,
         args: string[]
@@ -33,15 +33,13 @@ export class PrefixCommandHandler {
 
         if (!channel) {
           await message.reply(
-            "❌ Sinun täytyy olla äänikanavassa soittaaksesi musiikkia! / You need to be in a voice channel!"
+            "Pitää olla äänikanavas et voi soittaa musiikkii!"
           );
           return;
         }
 
         if (!args.length) {
-          await message.reply(
-            "❌ Anna laulun nimi tai YouTube-linkki! / Please provide a song name or YouTube URL!"
-          );
+          await message.reply("Anna joku biisin nimi tai YouTube-linkki!");
           return;
         }
 
@@ -57,14 +55,10 @@ export class PrefixCommandHandler {
               },
             },
           });
-
-          await message.reply(
-            `🎵 **${track.title}** lisätty jonoon! / added to queue!`
-          );
         } catch (error) {
           console.log(error);
           await message.reply(
-            "❌ Jotain meni vikaan laulua soittaessa! / Something went wrong while trying to play that song!"
+            "Jotaki meni pielee kun yritettii soittaa tuo biisi!"
           );
         }
       },
@@ -74,7 +68,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "stop",
       aliases: ["seis", "lopeta"],
-      description: "Stop music and clear the queue",
+      description: "Lopeta musiikki ja tyhjennä jono",
       usage: "stop",
       execute: async (
         message: Message<boolean>,
@@ -83,16 +77,12 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
         queue.delete();
-        await message.reply(
-          "⏹️ Musiikki pysäytetty ja jono tyhjennetty! / Music stopped and queue cleared!"
-        );
+        await message.reply("Musiikki lopetettii ja jono tyhjennettii!");
       },
     });
 
@@ -100,7 +90,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "pause",
       aliases: ["tauko", "pysäytä"],
-      description: "Pause the current song",
+      description: "Pysäytä nykynen biisi",
       usage: "pause",
       execute: async (
         message: Message<boolean>,
@@ -109,21 +99,17 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
         if (queue.node.isPaused()) {
-          await message.reply(
-            "⏸️ Musiikki on jo pysäytetty! / Music is already paused!"
-          );
+          await message.reply("Musiikki o jo pysäytettynä!");
           return;
         }
 
         queue.node.pause();
-        await message.reply("⏸️ Musiikki pysäytetty! / Music paused!");
+        await message.reply("Musiikki pysäytettii!");
       },
     });
 
@@ -131,7 +117,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "resume",
       aliases: ["jatka", "käynnistä"],
-      description: "Resume the paused music",
+      description: "Jatka pysäytettyy musiikkii",
       usage: "resume",
       execute: async (
         message: Message<boolean>,
@@ -140,21 +126,17 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
         if (!queue.node.isPaused()) {
-          await message.reply(
-            "▶️ Musiikki ei ole pysäytetty! / Music is not paused!"
-          );
+          await message.reply("Musiikki ei oo pysäytettynä!");
           return;
         }
 
         queue.node.resume();
-        await message.reply("▶️ Musiikki jatkuu! / Music resumed!");
+        await message.reply("Musiikki jatkuu!");
       },
     });
 
@@ -162,7 +144,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "skip",
       aliases: ["ohita", "hyppää", "seuraava"],
-      description: "Skip the current song",
+      description: "Hyppää nykysen biisin yli",
       usage: "skip",
       execute: async (
         message: Message<boolean>,
@@ -171,18 +153,14 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
         const currentTrack = queue.currentTrack;
         queue.node.skip();
 
-        await message.reply(
-          `⏭️ **${currentTrack.title}** ohitettu! / skipped!`
-        );
+        await message.reply(`Biisi ${currentTrack.title} ohitettii!`);
       },
     });
 
@@ -190,8 +168,8 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "queue",
       aliases: ["q", "jono", "lista"],
-      description: "Display the music queue",
-      usage: "queue [page number]",
+      description: "Näytä musiikkijono",
+      usage: "queue [sivunumero]",
       execute: async (
         message: Message<boolean>,
         args: string[]
@@ -199,9 +177,7 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
@@ -209,9 +185,7 @@ export class PrefixCommandHandler {
         const page = (parseInt(args[0]) || 1) - 1;
 
         if (page >= totalPages) {
-          await message.reply(
-            `❌ Virheellinen sivu. Sivuja on vain ${totalPages}. / Invalid page. There are only ${totalPages} pages available.`
-          );
+          await message.reply(`Väärä sivu. Sivui o vaa ${totalPages}.`);
           return;
         }
 
@@ -228,22 +202,20 @@ export class PrefixCommandHandler {
 
         const embed = new EmbedBuilder()
           .setDescription(
-            `**Nyt soimassa / Currently Playing**\n` +
+            `**Nyt soimassa**\n` +
               (currentTrack
                 ? `\`[${currentTrack.duration}]\` ${currentTrack.title} -- <@${
                     currentTrack.requestedBy!.id
                   }>`
-                : "Ei mitään / None") +
-              `\n\n**Jono / Queue**\n${
-                queueString || "Jono on tyhjä / Queue is empty"
-              }`
+                : "Ei mitää") +
+              `\n\n**Jono**\n${queueString || "Jono o tyhjä"}`
           )
           .setColor("#FF0000")
           .setThumbnail(currentTrack.thumbnail)
           .setFooter({
             text: `Sivu ${page + 1}/${totalPages} | ${
               queue.tracks.data.length
-            } laulua jonossa | ${queue.estimatedDuration} kokonaiskesto`,
+            } biisii jonos | ${queue.estimatedDuration} kokonaiskesto`,
           });
 
         await message.reply({ embeds: [embed] });
@@ -254,7 +226,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "nowplaying",
       aliases: ["np", "nytkuunnelmassa", "mitäsoi", "mikäsoi"],
-      description: "Display the currently playing song",
+      description: "Näytä mikä biisi soi nyt",
       usage: "nowplaying",
       execute: async (
         message: Message<boolean>,
@@ -263,9 +235,7 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
@@ -273,39 +243,39 @@ export class PrefixCommandHandler {
         const timestamp = queue.node.getTimestamp();
         const trackDuration =
           !timestamp || timestamp.progress === Infinity
-            ? "infinity (live)"
+            ? "loputtomii (live)"
             : track.duration;
 
         const embed = new EmbedBuilder()
-          .setTitle("🎵 Nyt soimassa / Now Playing")
+          .setTitle("Nyt soimassa")
           .setDescription(`**${track.title}**`)
           .addFields(
-            { name: "👤 Artisti / Author", value: track.author, inline: true },
-            { name: "⏱️ Kesto / Duration", value: trackDuration, inline: true },
+            { name: "Artisti", value: track.author, inline: true },
+            { name: "Kesto", value: trackDuration, inline: true },
             {
-              name: "📊 Edistyminen / Progress",
+              name: "Edistyminen",
               value:
                 !timestamp || timestamp.progress === Infinity
-                  ? "infinity (live)"
+                  ? "loputtomii (live)"
                   : `${timestamp.current.label} / ${timestamp.total.label}`,
               inline: true,
             },
             {
-              name: "🔊 Äänenvoimakkuus / Volume",
+              name: "Äänenvoimakkuus",
               value: `${queue.node.volume}%`,
               inline: true,
             },
             {
-              name: "🔁 Toisto / Loop",
+              name: "Toisto",
               value: queue.repeatMode
                 ? queue.repeatMode === 2
-                  ? "Jono / Queue"
-                  : "Kappale / Track"
-                : "Pois / Off",
+                  ? "Jono"
+                  : "Kappale"
+                : "Pois",
               inline: true,
             },
             {
-              name: "🎧 Pyysi / Requested by",
+              name: "Pyysi",
               value: `${track.requestedBy}`,
               inline: true,
             }
@@ -321,7 +291,7 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "volume",
       aliases: ["vol", "v", "äänenvoimakkuus", "ääni"],
-      description: "Change or check the music volume",
+      description: "Muuta tai tarkista äänenvoimakkuus",
       usage: "volume [0-100]",
       execute: async (
         message: Message<boolean>,
@@ -330,32 +300,24 @@ export class PrefixCommandHandler {
         const queue = useQueue(message.guild!.id);
 
         if (!queue || !queue.currentTrack) {
-          await message.reply(
-            "❌ Ei musiikkia soimassa! / No music is currently being played!"
-          );
+          await message.reply("Ei oo mitää musiikkii soimassa!");
           return;
         }
 
         const volume = parseInt(args[0]);
 
         if (isNaN(volume)) {
-          await message.reply(
-            `🔊 Nykyinen äänenvoimakkuus on **${queue.node.volume}%** / Current volume is **${queue.node.volume}%**`
-          );
+          await message.reply(`Äänenvoimakkuus o nyt ${queue.node.volume}%`);
           return;
         }
 
         if (volume < 0 || volume > 100) {
-          await message.reply(
-            "❌ Äänenvoimakkuus täytyy olla 0-100 väliltä! / Volume must be between 0-100!"
-          );
+          await message.reply("Äänenvoimakkuuden pitää olla 0-100 väliltä!");
           return;
         }
 
         queue.node.setVolume(volume);
-        await message.reply(
-          `🔊 Äänenvoimakkuus asetettu **${volume}%**! / Volume set to **${volume}%**!`
-        );
+        await message.reply(`Äänenvoimakkuus asetettu ${volume}%!`);
       },
     });
 
@@ -363,8 +325,8 @@ export class PrefixCommandHandler {
     this.registerCommand({
       name: "help",
       aliases: ["h", "apua", "komennot", "commands"],
-      description: "Show all available commands",
-      usage: "help [command name]",
+      description: "Näytä kaikki käytettävissä olevat komennot",
+      usage: "help [komennon nimi]",
       execute: async (
         message: Message<boolean>,
         args: string[]
@@ -375,29 +337,29 @@ export class PrefixCommandHandler {
 
           if (!command) {
             await message.reply(
-              "❌ Komentoa ei löytynyt! Kirjoita `i.help` nähdäksesi kaikki komennot. / Command not found! Type `i.help` to see all commands."
+              "Komentoo ei löydy! Kirjota `i.help` nähäkses kaikki komennot."
             );
             return;
           }
 
           const embed = new EmbedBuilder()
-            .setTitle(`📝 Komento / Command: ${command.name}`)
+            .setTitle(`Komento: ${command.name}`)
             .setDescription(command.description)
             .addFields(
               {
-                name: "📖 Käyttö / Usage",
+                name: "Käyttö",
                 value: `\`${this.prefixes[0]}${command.usage}\``,
                 inline: false,
               },
               {
-                name: "🏷️ Aliakset / Aliases",
+                name: "Aliakset",
                 value: command.aliases
                   .map((alias) => `\`${alias}\``)
                   .join(", "),
                 inline: false,
               },
               {
-                name: "💡 Esimerkit / Examples",
+                name: "Esimerkit",
                 value: this.getExamplesForCommand(command.name),
                 inline: false,
               }
@@ -409,56 +371,56 @@ export class PrefixCommandHandler {
         }
 
         const embed = new EmbedBuilder()
-          .setTitle("🎵 Ilpo - Kaikki Komennot / All Commands")
+          .setTitle("Ilpo - Kaikki Komennot")
           .setDescription(
-            "**Kahdella tavalla käytettävissä / Available in two ways:**\n\n" +
-              "⚡ **Slash Commands**: `/command` (type `/` to see them)\n" +
-              "🔤 **Prefix Commands**: `i.command` tai `ilpo.command`\n\n" +
-              `**Prefiksit / Prefixes:** ${this.prefixes
+            "**Kahdel taval käytettävissä:**\n\n" +
+              "Slash Commands: `/command`\n" +
+              "Prefix Commands: `i.command` tai `ilpo.command`\n\n" +
+              `**Prefiksit:** ${this.prefixes
                 .map((p) => `\`${p}\``)
-                .join(" tai / or ")}`
+                .join(" tai ")}`
           )
           .addFields(
             {
-              name: "🎵 Musiikki / Music",
+              name: "Musiikki",
               value:
-                "🎶 **play** (`p`, `soita`, `soitahan`) - Soita laulu / Play song\n" +
-                "⏹️ **stop** (`seis`, `lopeta`) - Pysäytä / Stop\n" +
-                "⏸️ **pause** (`tauko`) - Tauko / Pause\n" +
-                "▶️ **resume** (`jatka`) - Jatka / Resume\n" +
-                "⏭️ **skip** (`ohita`, `hyppää`) - Ohita / Skip",
+                "**play** (`p`, `soita`, `soitahan`) - Soita biisi\n" +
+                "**stop** (`seis`, `lopeta`) - Lopeta\n" +
+                "**pause** (`tauko`) - Tauko\n" +
+                "**resume** (`jatka`) - Jatka\n" +
+                "**skip** (`ohita`, `hyppää`) - Ohita",
               inline: false,
             },
             {
-              name: "📋 Tiedot / Information",
+              name: "Tiedot",
               value:
-                "📜 **queue** (`q`, `jono`, `lista`) - Näytä jono / Show queue\n" +
-                "🎵 **nowplaying** (`np`, `mitäsoi`, `mikäsoi`) - Mikä soi? / What's playing?\n" +
-                "🔊 **volume** (`vol`, `v`, `ääni`) - Äänenvoimakkuus / Volume",
+                "**queue** (`q`, `jono`, `lista`) - Näytä jono\n" +
+                "**nowplaying** (`np`, `mitäsoi`, `mikäsoi`) - Mikä soi?\n" +
+                "**volume** (`vol`, `v`, `ääni`) - Äänenvoimakkuus",
               inline: false,
             },
             {
-              name: "🇫🇮 Suomalaiset Pikakomennot / Finnish Quick Commands",
+              name: "Suomalaiset Pikakomennot",
               value:
-                "`ilpo.soitahan <laulu>` 🎵\n" +
-                "`ilpo.seis` ⏹️\n" +
-                "`ilpo.mitäsoi` ❓\n" +
-                "`ilpo.ohita` ⏭️\n" +
-                "`ilpo.jono` 📜",
+                "`ilpo.soitahan <biisi>`\n" +
+                "`ilpo.seis`\n" +
+                "`ilpo.mitäsoi`\n" +
+                "`ilpo.ohita`\n" +
+                "`ilpo.jono`",
               inline: false,
             },
             {
-              name: "💡 Lisäapu / Additional Help",
+              name: "Lisäapu",
               value:
-                "**Yksityiskohtaiset ohjeet / Detailed help:**\n" +
+                "**Yksityiskohtaiset ohjeet:**\n" +
                 "`i.help <komento>` tai `ilpo.apua <komento>`\n" +
-                "**Slash-komennot / Slash commands:**\n" +
-                "`/help` - Näytä slash-komennot / Show slash commands",
+                "**Slash-komennot:**\n" +
+                "`/help` - Näytä slash-komennot",
               inline: false,
             }
           )
           .setFooter({
-            text: "💡 Esim: 'i.help play' tai 'ilpo.apua soita' / Example: 'i.help play' or 'ilpo.apua soita'",
+            text: "Esim: 'i.help play' tai 'ilpo.apua soita'",
           })
           .setColor("#0099ff");
 
@@ -480,10 +442,7 @@ export class PrefixCommandHandler {
       help: "`i.help`\n`ilpo.apua play`\n`i.komennot`",
     };
 
-    return (
-      examples[commandName] ||
-      "Ei esimerkkejä saatavilla / No examples available"
-    );
+    return examples[commandName] || "Ei esimerkkei saatavil";
   }
 
   private registerCommand(command: PrefixCommand): void {
@@ -521,10 +480,11 @@ export class PrefixCommandHandler {
     try {
       await command.execute(message, args);
     } catch (error) {
-      console.error(`Error executing prefix command ${commandName}:`, error);
-      await message.reply(
-        "❌ Virhe komentoa suorittaessa! / Error executing command!"
+      console.error(
+        `Virhe prefix-komentoa suorittaessa ${commandName}:`,
+        error
       );
+      await message.reply("Jotaki meni pielee komentoo suorittaessa!");
     }
   }
 }

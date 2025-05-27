@@ -12,9 +12,7 @@ module.exports = {
     const command = commands.get(interaction.commandName);
 
     if (!command) {
-      console.error(
-        `No command matching ${interaction.commandName} was found.`
-      );
+      console.error(`Ei löydy komentoo ${interaction.commandName}.`);
       return;
     }
 
@@ -24,12 +22,12 @@ module.exports = {
       console.error(error);
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
-          content: "There was an error while executing this command!",
+          content: "Jotaki meni pielee tuon komennon kans!",
           ephemeral: true,
         });
       } else {
         await interaction.reply({
-          content: "There was an error while executing this command!",
+          content: "Jotaki meni pielee tuon komennon kans!",
           ephemeral: true,
         });
       }

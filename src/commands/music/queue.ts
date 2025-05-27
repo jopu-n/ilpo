@@ -8,24 +8,22 @@ import { useQueue } from "discord-player";
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("queue")
-    .setDescription("Display the music queue")
+    .setDescription("Näytä musiikkijono")
     .addIntegerOption((option) =>
-      option.setName("page").setDescription("Queue page number").setMinValue(1)
+      option.setName("page").setDescription("Sivunumero").setMinValue(1)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = useQueue(interaction.guild!.id);
 
     if (!queue || !queue.currentTrack) {
-      return interaction.reply("❌ No music is currently being played!");
+      return interaction.reply("Ei ol mittä musiikki soimas!");
     }
 
     const totalPages = Math.ceil(queue.tracks.data.length / 10) || 1;
     const page = (interaction.options.getInteger("page") ?? 1) - 1;
 
     if (page > totalPages) {
-      return interaction.reply(
-        `❌ Invalid page. There are only ${totalPages} pages available.`
-      );
+      return interaction.reply(`Väärä sivu. Sivui o vaa ${totalPages}.`);
     }
 
     const queueString = queue.tracks.data
@@ -41,20 +39,20 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setDescription(
-        `**Currently Playing**\n` +
+        `**Nyt soimassa**\n` +
           (currentTrack
             ? `\`[${currentTrack.duration}]\` ${currentTrack.title} -- <@${
                 currentTrack.requestedBy!.id
               }>`
-            : "None") +
-          `\n\n**Queue**\n${queueString}`
+            : "Ei mitää") +
+          `\n\n**Jono**\n${queueString}`
       )
       .setColor("#FF0000")
       .setThumbnail(currentTrack.thumbnail)
       .setFooter({
-        text: `Page ${page + 1} of ${totalPages} | ${
+        text: `Sivu ${page + 1}/${totalPages} | ${
           queue.tracks.data.length
-        } song(s) in queue | ${queue.estimatedDuration} total length`,
+        } biisii jonos | ${queue.estimatedDuration} kokonaiskesto`,
       });
 
     return interaction.reply({ embeds: [embed] });

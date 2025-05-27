@@ -7,11 +7,11 @@ import {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Play a song from YouTube")
+    .setDescription("Soita biisi YouTubesta")
     .addStringOption((option) =>
       option
         .setName("query")
-        .setDescription("The song name or YouTube URL")
+        .setDescription("Biisin nimi tai YouTube URL")
         .setRequired(true)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
@@ -20,7 +20,7 @@ module.exports = {
 
     if (!channel) {
       return interaction.reply(
-        "❌ You need to be in a voice channel to play music!"
+        "Pitää olla äänikanavas et voi soittaa musiikki mar!"
       );
     }
 
@@ -39,13 +39,11 @@ module.exports = {
         },
       });
 
-      return interaction.followUp(
-        `🎵 **${track.title}** has been added to the queue!`
-      );
+      return interaction.followUp(`Biisi ${track.title} laitettii jonoo!`);
     } catch (error) {
       console.log(error);
       return interaction.followUp(
-        "❌ Something went wrong while trying to play that song!"
+        "Jotaki meni pielee ku mää yrittäsin soittaa tuon biisi!"
       );
     }
   },

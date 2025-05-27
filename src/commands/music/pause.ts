@@ -4,19 +4,19 @@ import { useQueue } from "discord-player";
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("pause")
-    .setDescription("Pause the current song"),
+    .setDescription("Pysäytä nykynen biisi"),
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = useQueue(interaction.guild!.id);
 
     if (!queue || !queue.currentTrack) {
-      return interaction.reply("❌ No music is currently being played!");
+      return interaction.reply("Ei ol mittä musiikki soimas!");
     }
 
     if (queue.node.isPaused()) {
-      return interaction.reply("⏸️ The music is already paused!");
+      return interaction.reply("Musiikki o jo pysäytettynä!");
     }
 
     queue.node.pause();
-    return interaction.reply("⏸️ Paused the music!");
+    return interaction.reply("Musiikki pysäytettii!");
   },
 };

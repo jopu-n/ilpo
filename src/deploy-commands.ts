@@ -21,7 +21,7 @@ for (const file of commandFiles) {
     commands.push(command.data.toJSON());
   } else {
     console.log(
-      `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+      `[VAROITUS] Komennos ${filePath} puuttuu "data" tai "execute" -ominaisuus.`
     );
   }
 }
@@ -32,9 +32,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
 // Deploy commands
 (async () => {
   try {
-    console.log(
-      `Started refreshing ${commands.length} application (/) commands.`
-    );
+    console.log(`Alotetaa ${commands.length} slash-komennon päivittäminen.`);
 
     // Register commands globally (takes up to an hour)
     const data = await rest.put(
@@ -43,7 +41,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
     );
 
     console.log(
-      `Successfully reloaded ${(data as any).length} application (/) commands.`
+      `Onnistuttii päivittää ${(data as any).length} slash-komentoo.`
     );
   } catch (error) {
     console.error(error);

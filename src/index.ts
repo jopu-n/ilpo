@@ -35,35 +35,37 @@ player.extractors.register(YoutubeiExtractor, {
 
 // Load player events
 player.events.on("audioTrackAdd", (queue, track) => {
-  queue.metadata.channel.send(`🎵 Track **${track.title}** queued!`);
+  queue.metadata.channel.send(` ${track.title} laitettii jonoo!`);
 });
 
 player.events.on("audioTracksAdd", (queue, tracks) => {
-  queue.metadata.channel.send(`🎵 **${tracks.length}** tracks queued!`);
+  queue.metadata.channel.send(`${tracks.length} biisii laitettii jonoo!`);
 });
 
 player.events.on("playerStart", (queue, track) => {
-  queue.metadata.channel.send(`▶️ Started playing **${track.title}**!`);
+  queue.metadata.channel.send(`Alettii soittaa biisii ${track.title}!`);
 });
 
 player.events.on("emptyQueue", (queue) => {
-  queue.metadata.channel.send("✅ Queue finished!");
+  queue.metadata.channel.send("Jono loppus!");
 });
 
 player.events.on("emptyChannel", (queue) => {
-  queue.metadata.channel.send("❌ Nobody is in the voice channel, leaving...");
+  queue.metadata.channel.send("Ei ol kettä äänikanaval, lähen pois...");
 });
 
 // Add error event handlers
 player.events.on("error", (queue, error) => {
-  console.log(`General player error: ${error.message}`);
+  console.log(`Yleinen player-virhe: ${error.message}`);
   console.log(error);
 });
 
 player.events.on("playerError", (queue, error) => {
-  console.log(`Player error: ${error.message}`);
+  console.log(`Player-virhe: ${error.message}`);
   console.log(error);
-  queue.metadata.channel.send(`❌ Error playing track: ${error.message}`);
+  queue.metadata.channel.send(
+    `Jotaki meni pielee biisin kans: ${error.message}`
+  );
 });
 
 // Add debug event for more detailed logging
@@ -88,7 +90,7 @@ for (const file of commandFiles) {
     commands.set(command.data.name, command);
   } else {
     console.log(
-      `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+      `[VAROITUS] Komennos ${filePath} puuttuu "data" tai "execute" -ominaisuus.`
     );
   }
 }

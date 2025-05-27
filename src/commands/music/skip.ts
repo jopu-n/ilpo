@@ -4,17 +4,17 @@ import { useQueue } from "discord-player";
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("skip")
-    .setDescription("Skip the current song"),
+    .setDescription("Hyppää nykysen biisin yli"),
   async execute(interaction: ChatInputCommandInteraction) {
     const queue = useQueue(interaction.guild!.id);
 
     if (!queue || !queue.currentTrack) {
-      return interaction.reply("❌ No music is currently being played!");
+      return interaction.reply("Ei ol mittä musiikki soimas!");
     }
 
     const currentTrack = queue.currentTrack;
     queue.node.skip();
 
-    return interaction.reply(`⏭️ Skipped **${currentTrack.title}**!`);
+    return interaction.reply(`Biisi ${currentTrack.title} ohitettii!`);
   },
 };
