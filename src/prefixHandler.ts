@@ -269,7 +269,8 @@ export class PrefixCommandHandler {
                 "**Yksityiskohtaiset ohjeet:**\n" +
                 "`i.help <komento>` tai `ilpo.apua <komento>`\n" +
                 "**Slash-komennot:**\n" +
-                "`/help` - Näytä slash-komennot",
+                "`/help` - Näytä slash-komennot\n" +
+                "**Sekä YouTube että äänitiedostot toimii!**",
               inline: false,
             }
           )

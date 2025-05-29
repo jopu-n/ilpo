@@ -6,6 +6,15 @@ import {
   ChatInputCommandInteraction,
 } from "discord.js";
 import { Player, useQueue } from "discord-player";
+import {
+  joinVoiceChannel,
+  createAudioPlayer,
+  createAudioResource,
+  AudioPlayerStatus,
+  VoiceConnectionStatus,
+  VoiceConnection,
+  AudioPlayer,
+} from "@discordjs/voice";
 
 export interface MP3FileInfo {
   url: string;
@@ -19,11 +28,31 @@ export interface MusicResult {
   error?: any;
 }
 
+interface DirectAudioState {
+  isPlaying: boolean;
+  connection: VoiceConnection | null;
+  player: AudioPlayer | null;
+  currentTrack: {
+    title: string;
+    url: string;
+    requestedBy: any;
+  } | null;
+  guildId: string | null;
+}
+
 export class MusicManager {
   private player: Player;
+  private directAudioState: DirectAudioState;
 
   constructor(player: Player) {
     this.player = player;
+    this.directAudioState = {
+      isPlaying: false,
+      connection: null,
+      player: null,
+      currentTrack: null,
+      guildId: null,
+    };
   }
 
   /**
@@ -75,6 +104,113 @@ export class MusicManager {
   }
 
   /**
+   * Check if URL is a direct audio file URL
+   */
+  private isDirectAudioURL(url: string): boolean {
+    return (
+      url.includes("cdn.discordapp.com") ||
+      url.includes("media.discordapp.net") ||
+      url.match(/\.(mp3|wav|m4a|ogg|flac)(\?|$)/i) !== null
+    );
+  }
+
+  /**
+   * Play direct audio file using @discordjs/voice
+   */
+  private async playDirectAudio(
+    channel: VoiceBasedChannel,
+    audioUrl: string,
+    audioName: string,
+    requestedBy: any,
+    guildId: string
+  ): Promise<MusicResult> {
+    try {
+      // Stop any existing discord-player queue first
+      const existingQueue = useQueue(guildId);
+      if (existingQueue && existingQueue.currentTrack) {
+        existingQueue.delete();
+      }
+
+      // Create voice connection
+      const connection = joinVoiceChannel({
+        channelId: channel.id,
+        guildId: guildId,
+        adapterCreator: channel.guild.voiceAdapterCreator,
+      });
+
+      // Create audio player and resource
+      const audioPlayer = createAudioPlayer();
+      const resource = createAudioResource(audioUrl);
+
+      // Update state
+      this.directAudioState = {
+        isPlaying: true,
+        connection: connection,
+        player: audioPlayer,
+        currentTrack: {
+          title: audioName,
+          url: audioUrl,
+          requestedBy: requestedBy,
+        },
+        guildId: guildId,
+      };
+
+      // Set up event listeners
+      audioPlayer.on(AudioPlayerStatus.Playing, () => {
+        console.log(`Alotetaa MP3:n soitto: ${audioName}`);
+      });
+
+      audioPlayer.on(AudioPlayerStatus.Idle, () => {
+        console.log(`MP3 loppu: ${audioName}`);
+        this.cleanupDirectAudio();
+      });
+
+      audioPlayer.on("error", (error) => {
+        console.error("MP3 soitto-virhe:", error);
+        this.cleanupDirectAudio();
+      });
+
+      connection.on(VoiceConnectionStatus.Disconnected, () => {
+        this.cleanupDirectAudio();
+      });
+
+      // Start playing
+      audioPlayer.play(resource);
+      connection.subscribe(audioPlayer);
+
+      return {
+        success: true,
+        message: `Selvä! Äänitiedosto "${audioName}" soi nyt!`,
+      };
+    } catch (error) {
+      console.log("MP3 soitto-virhe:", error);
+      this.cleanupDirectAudio();
+      return {
+        success: false,
+        error: error,
+        message: "Jotaki meni pielee ku yritettii soittaa tuo äänitiedosto!",
+      };
+    }
+  }
+
+  /**
+   * Clean up direct audio state
+   */
+  private cleanupDirectAudio(): void {
+    if (this.directAudioState.connection) {
+      this.directAudioState.connection.destroy();
+    }
+
+    this.directAudioState = {
+      isPlaying: false,
+      connection: null,
+      player: null,
+      currentTrack: null,
+      guildId: null,
+    };
+  }
+
+  /**
    * Play music - handles both YouTube and audio files
    */
   public async play(
@@ -85,6 +221,26 @@ export class MusicManager {
     audioFileName?: string
   ): Promise<MusicResult> {
     try {
+      // Check if this is a direct audio file URL
+      if (isAudioFile && this.isDirectAudioURL(query)) {
+        return await this.playDirectAudio(
+          channel,
+          query,
+          audioFileName || "Äänitiedosto",
+          metadata.requestedBy,
+          channel.guild.id
+        );
+      }
+
+      // Check if direct audio is currently playing
+      if (this.directAudioState.isPlaying) {
+        return {
+          success: false,
+          message: `Nyt soi äänitiedosto "${this.directAudioState.currentTrack?.title}". Käytä \`i.stop\` lopettaakses sen ensin!`,
+        };
+      }
+
+      // Regular YouTube/streaming service handling
       const { track } = await this.player.play(channel, query, {
         nodeOptions: {
           metadata: metadata,
@@ -94,9 +250,7 @@ export class MusicManager {
       return {
         success: true,
         track: track,
-        message: isAudioFile
-          ? `Selvä! Äänitiedosto "${audioFileName}" laitettii jonoo!`
-          : "",
+        message: ``,
       };
     } catch (error) {
       console.log("Soitto-virhe:", error);
@@ -125,7 +279,7 @@ export class MusicManager {
     if (!channel) {
       return {
         success: false,
-        message: "Pitää olla äänikanavas et voi soittaa musikkii!",
+        message: "Pitää olla äänikanavas et voi soittaa musiikkii!",
       };
     }
 
@@ -173,8 +327,22 @@ export class MusicManager {
    * Stop music and clear queue
    */
   public async stop(guildId: string): Promise<MusicResult> {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      const trackName =
+        this.directAudioState.currentTrack?.title || "äänitiedosto";
+      this.cleanupDirectAudio();
+      return {
+        success: true,
+        message: `Äänitiedosto "${trackName}" lopetettii!`,
+      };
+    }
 
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -193,8 +361,22 @@ export class MusicManager {
    * Pause current track
    */
   public async pause(guildId: string): Promise<MusicResult> {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      if (this.directAudioState.player) {
+        this.directAudioState.player.pause();
+        return {
+          success: true,
+          message: "Äänitiedosto pysäytettii!",
+        };
+      }
+    }
 
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -220,8 +402,22 @@ export class MusicManager {
    * Resume paused track
    */
   public async resume(guildId: string): Promise<MusicResult> {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      if (this.directAudioState.player) {
+        this.directAudioState.player.unpause();
+        return {
+          success: true,
+          message: "Äänitiedosto jatkuu!",
+        };
+      }
+    }
 
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -247,8 +443,22 @@ export class MusicManager {
    * Skip current track
    */
   public async skip(guildId: string): Promise<MusicResult> {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      const trackName =
+        this.directAudioState.currentTrack?.title || "äänitiedosto";
+      this.cleanupDirectAudio();
+      return {
+        success: true,
+        message: `Äänitiedosto "${trackName}" ohitettii!`,
+      };
+    }
 
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -272,8 +482,20 @@ export class MusicManager {
     guildId: string,
     newVolume?: number
   ): Promise<MusicResult> {
-    const queue = useQueue(guildId);
+    // Direct audio doesn't support volume control easily
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      return {
+        success: false,
+        message:
+          "Äänenvoimakkuuden säätö ei toimi äänitiedostoi kans. Käytä Discordin omaa äänenvoimakkuus-säätöö!",
+      };
+    }
 
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -309,8 +531,31 @@ export class MusicManager {
     guildId: string,
     page: number = 1
   ): { success: boolean; embed?: EmbedBuilder; message?: string } {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      const track = this.directAudioState.currentTrack!;
+      const embed = new EmbedBuilder()
+        .setDescription(
+          `**Nyt soimassa (Äänitiedosto)**\n` +
+            `${track.title} -- <@${track.requestedBy.id}>\n\n` +
+            `**Jono**\nTyhjä (äänitiedostoi ei voi lisätä jonoo)`
+        )
+        .setColor("#FF0000")
+        .setFooter({
+          text: "Äänitiedosto - Ei jonoo saatavil",
+        });
 
+      return {
+        success: true,
+        embed: embed,
+      };
+    }
+
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
@@ -369,8 +614,33 @@ export class MusicManager {
     embed?: EmbedBuilder;
     message?: string;
   } {
-    const queue = useQueue(guildId);
+    // Check if direct audio is playing
+    if (
+      this.directAudioState.isPlaying &&
+      this.directAudioState.guildId === guildId
+    ) {
+      const track = this.directAudioState.currentTrack!;
+      const embed = new EmbedBuilder()
+        .setTitle("Nyt soimassa (Äänitiedosto)")
+        .setDescription(`**${track.title}**`)
+        .addFields(
+          { name: "Tyyppi", value: "Äänitiedosto", inline: true },
+          { name: "Kesto", value: "Tuntematon", inline: true },
+          { name: "Edistyminen", value: "Tuntematon", inline: true },
+          { name: "Äänenvoimakkuus", value: "Discord-säädöt", inline: true },
+          { name: "Toisto", value: "Ei saatavil", inline: true },
+          { name: "Pyysi", value: `${track.requestedBy}`, inline: true }
+        )
+        .setColor("#FF0000");
 
+      return {
+        success: true,
+        embed: embed,
+      };
+    }
+
+    // Handle discord-player queue
+    const queue = useQueue(guildId);
     if (!queue || !queue.currentTrack) {
       return {
         success: false,
