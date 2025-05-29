@@ -1,5 +1,6 @@
 import { Message, GuildMember, EmbedBuilder } from "discord.js";
 import { MusicManager } from "./managers/MusicManager";
+import { AISongService } from "./services/AISongService";
 import fs from "fs";
 import path from "path";
 
@@ -15,9 +16,22 @@ export class PrefixCommandHandler {
   private commands = new Map<string, PrefixCommand>();
   private prefixes = ["i.", "ilpo."];
   private musicManager: MusicManager;
+  private aiSongService: AISongService | null = null;
 
   constructor(player: any) {
     this.musicManager = new MusicManager(player);
+
+    // Try to initialize AI service, but don't fail if it's not available
+    try {
+      this.aiSongService = new AISongService();
+    } catch (error) {
+      console.error("Failed to initialize AI Song Service:", error);
+      console.log(
+        "Random song command will be disabled. Make sure GEMINI_API_KEY is set in .env file."
+      );
+      this.aiSongService = null;
+    }
+
     this.loadCommands();
   }
 
@@ -168,6 +182,91 @@ export class PrefixCommandHandler {
       },
     });
 
+    // Random song command - AI powered
+    this.registerCommand({
+      name: "randomsong",
+      aliases: ["rs", "random", "surprise", "yllätä"],
+      description:
+        "Pyydä AI:ta ehdottamaan satunnainen biisi kuvauksen perusteella",
+      usage: "randomsong [kuvaus] TAI randomsong (täysin satunnainen)",
+      execute: async (
+        message: Message<boolean>,
+        args: string[]
+      ): Promise<void> => {
+        if (!this.aiSongService) {
+          await message.reply(
+            "AI-biisisuositukset ei oo käytössä! Tarkista että GEMINI_API_KEY o asetettu .env-tiedostoos."
+          );
+          return;
+        }
+
+        const member = message.member as GuildMember;
+        const channel = member?.voice.channel;
+
+        if (!channel) {
+          await message.reply(
+            "Pitää olla äänikanavas et voi käyttää tätä komentoo!"
+          );
+          return;
+        }
+
+        const description = args.join(" ").trim() || undefined;
+
+        // Send initial message
+        const loadingMessage = await message.reply(
+          description
+            ? `🤖 AI miettii biisii kuvauksel "${description}"...`
+            : "🤖 AI miettii täysin satunnaist biisii..."
+        );
+
+        try {
+          // Generate song with AI
+          const result = await this.aiSongService.generateSong(description);
+
+          if (!result.success) {
+            await loadingMessage.edit(
+              `❌ AI-virhe: ${result.error || "Tuntematon virhe"}`
+            );
+            return;
+          }
+
+          const songName = result.songName!;
+
+          // Update loading message
+          await loadingMessage.edit(
+            `🎵 AI ehdotti: **${songName}**\nHaetaa YouTubesta...`
+          );
+
+          // Play the suggested song
+          const playResult = await this.musicManager.handlePlay(
+            message.guild!.id,
+            channel,
+            songName,
+            message.author,
+            message.channel,
+            message.guild?.members.me
+          );
+
+          if (playResult.success) {
+            await loadingMessage.edit(
+              `✅ AI ehdotti: **${songName}**\n${
+                playResult.message || "Biisi soitetaa!"
+              }`
+            );
+          } else {
+            await loadingMessage.edit(
+              `⚠️ AI ehdotti: **${songName}**\nMutta ${playResult.message}`
+            );
+          }
+        } catch (error) {
+          console.error("Random song command error:", error);
+          await loadingMessage.edit(
+            "❌ Jotaki meni pielee AI-biisisuosituksen kans!"
+          );
+        }
+      },
+    });
+
     // Tomi command - Random line from aijamatto.txt
     this.registerCommand({
       name: "tomi",
@@ -288,8 +387,10 @@ export class PrefixCommandHandler {
               inline: false,
             },
             {
-              name: "Viihde",
-              value: "**tomi** (`rsä`) - Satunnainen Tomi-lainaus",
+              name: "AI & Viihde",
+              value:
+                "**randomsong** (`rs`, `random`, `surprise`, `yllätä`) - AI-biisisuositus\n" +
+                "**tomi** (`rsä`) - Satunnainen Tomi-lainaus",
               inline: false,
             },
             {
@@ -308,6 +409,7 @@ export class PrefixCommandHandler {
                 "`ilpo.mitäsoi`\n" +
                 "`ilpo.ohita`\n" +
                 "`ilpo.jono`\n" +
+                "`ilpo.yllätä` tai `ilpo.rs` - AI-biisisuositus\n" +
                 "`ilpo.tomi` tai `ilpo.rsä` - Tomi-lainaus",
               inline: false,
             },
@@ -323,7 +425,7 @@ export class PrefixCommandHandler {
             }
           )
           .setFooter({
-            text: "Esim: 'i.help play' tai 'ilpo.apua soita' tai 'ilpo.tomi'",
+            text: "Esim: 'i.help play' tai 'ilpo.apua randomsong' tai 'ilpo.yllätä'",
           })
           .setColor("#0099ff");
 
@@ -344,6 +446,8 @@ export class PrefixCommandHandler {
       volume: "`i.volume`\n`i.vol 50`\n`ilpo.ääni 80`",
       help: "`i.help`\n`ilpo.apua play`\n`i.komennot`",
       tomi: "`i.tomi`\n`ilpo.tomi`\n`ilpo.rsä`",
+      randomsong:
+        "`i.randomsong`\n`i.rs melancholic indie song`\n`ilpo.yllätä electronic`\n`ilpo.surprise` (täysin satunnainen)",
     };
 
     return examples[commandName] || "Ei esimerkkei saatavil";

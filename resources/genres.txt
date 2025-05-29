@@ -1,0 +1,203 @@
+rock
+alternative rock
+indie rock
+garage rock
+surf rock
+psychedelic rock
+prog rock
+art rock
+glam rock
+blues rock
+southern rock
+stoner rock
+desert rock
+space rock
+krautrock
+post-rock
+math rock
+noise rock
+experimental rock
+grunge
+britpop
+shoegaze
+post-punk
+new wave
+punk rock
+hardcore punk
+pop punk
+ska punk
+emo
+screamo
+metal
+black metal
+doom metal
+sludge metal
+metalcore
+djent
+pop
+indie pop
+dream pop
+electropop
+synthpop
+art pop
+baroque pop
+chamber pop
+bubblegum pop
+teen pop
+dance pop
+power pop
+jangle pop
+bedroom pop
+lo-fi pop
+k-pop
+j-pop
+britpop
+pop rock
+soft rock
+pop punk
+rap
+hip hop
+trap
+drill
+uk drill
+grime
+boom bap
+conscious rap
+gangsta rap
+mumble rap
+cloud rap
+emo rap
+alternative hip hop
+experimental hip hop
+jazz rap
+trap metal
+phonk
+uk garage
+afrobeat rap
+latin trap
+reggaeton
+electronic
+house
+deep house
+tech house
+progressive house
+french house
+garage house
+acid house
+uk garage
+techno
+minimal techno
+detroit techno
+berlin techno
+ambient techno
+trance
+psytrance
+progressive trance
+uplifting trance
+drum and bass
+liquid dnb
+neurofunk
+jump up
+jungle
+hardcore
+gabber
+breakbeat
+breakcore
+dubstep
+brostep
+future bass
+chillstep
+ambient
+dark ambient
+drone
+field recording
+glitch
+idm
+downtempo
+trip hop
+chillout
+chillwave
+vaporwave
+synthwave
+darkwave
+coldwave
+retrowave
+outrun
+cyberpunk
+industrial
+ebm
+aggrotech
+power electronics
+r&b
+neo-soul
+contemporary r&b
+alternative r&b
+uk soul
+northern soul
+motown
+funk
+disco
+nu-disco
+italo disco
+euro disco
+freestyle
+jazz
+smooth jazz
+jazz fusion
+bebop
+swing
+free jazz
+avant-garde jazz
+modal jazz
+cool jazz
+hard bop
+blues
+delta blues
+chicago blues
+electric blues
+country blues
+folk
+indie folk
+folk rock
+americana
+bluegrass
+celtic
+world music
+afrobeat
+bossa nova
+samba
+salsa
+bachata
+cumbia
+flamenco
+fado
+reggae
+dub
+dancehall
+ska
+rocksteady
+gospel
+spiritual
+contemporary christian
+singer-songwriter
+coffeehouse
+experimental
+avant-garde
+noise
+minimal
+post-punk revival
+new romantic
+goth
+darkwave
+deathrock
+coldwave
+witch house
+phonk
+memphis rap
+lo-fi hip hop
+jazz hop
+study beats
+chill hop
+future funk
+electro swing
+acid jazz
