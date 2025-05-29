@@ -1,5 +1,7 @@
 import { Message, GuildMember, EmbedBuilder } from "discord.js";
 import { MusicManager } from "./managers/MusicManager";
+import fs from "fs";
+import path from "path";
 
 export interface PrefixCommand {
   name: string;
@@ -166,6 +168,46 @@ export class PrefixCommandHandler {
       },
     });
 
+    // Tomi command - Random line from aijamatto.txt
+    this.registerCommand({
+      name: "tomi",
+      aliases: ["rsä"],
+      description: "Satunnainen Tomi-lainaus",
+      usage: "tomi",
+      execute: async (
+        message: Message<boolean>,
+        args: string[]
+      ): Promise<void> => {
+        try {
+          const filePath = path.join(
+            __dirname,
+            "..",
+            "resources",
+            "aijamatto.txt"
+          );
+          const fileContent = fs.readFileSync(filePath, "utf-8");
+          const lines = fileContent
+            .split("\n")
+            .filter((line) => line.trim() !== "");
+
+          if (lines.length === 0) {
+            await message.reply("Aijamatto-tiedosto o tyhjä!");
+            return;
+          }
+
+          const randomIndex = Math.floor(Math.random() * lines.length);
+          const randomLine = lines[randomIndex];
+
+          await message.reply(randomLine);
+        } catch (error) {
+          console.error("Virhe luettaessa aijamatto.txt:", error);
+          await message.reply(
+            "Jotaki meni pielee ku yritettii lukee Tomi-lainauksia!"
+          );
+        }
+      },
+    });
+
     // Help command
     this.registerCommand({
       name: "help",
@@ -246,6 +288,11 @@ export class PrefixCommandHandler {
               inline: false,
             },
             {
+              name: "Viihde",
+              value: "**tomi** (`rsä`) - Satunnainen Tomi-lainaus",
+              inline: false,
+            },
+            {
               name: "Äänitiedostot",
               value:
                 "**Samassa viestissä:** Lähetä äänitiedosto + `i.p` samassa viestissä\n" +
@@ -260,7 +307,8 @@ export class PrefixCommandHandler {
                 "`ilpo.seis`\n" +
                 "`ilpo.mitäsoi`\n" +
                 "`ilpo.ohita`\n" +
-                "`ilpo.jono`",
+                "`ilpo.jono`\n" +
+                "`ilpo.tomi` tai `ilpo.rsä` - Tomi-lainaus",
               inline: false,
             },
             {
@@ -275,7 +323,7 @@ export class PrefixCommandHandler {
             }
           )
           .setFooter({
-            text: "Esim: 'i.help play' tai 'ilpo.apua soita' tai vastaa MP3:ää 'i.p'",
+            text: "Esim: 'i.help play' tai 'ilpo.apua soita' tai 'ilpo.tomi'",
           })
           .setColor("#0099ff");
 
@@ -295,6 +343,7 @@ export class PrefixCommandHandler {
       nowplaying: "`i.np`\n`ilpo.mitäsoi`\n`i.nytkuunnelmassa`",
       volume: "`i.volume`\n`i.vol 50`\n`ilpo.ääni 80`",
       help: "`i.help`\n`ilpo.apua play`\n`i.komennot`",
+      tomi: "`i.tomi`\n`ilpo.tomi`\n`ilpo.rsä`",
     };
 
     return examples[commandName] || "Ei esimerkkei saatavil";
