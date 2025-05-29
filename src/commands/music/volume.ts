@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { MusicManager } from "../../managers/MusicManager";
+import "../../types"; // Import types to get global declarations
 
 module.exports = {
   data: new SlashCommandBuilder()

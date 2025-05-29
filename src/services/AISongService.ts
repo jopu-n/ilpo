@@ -8,6 +8,7 @@ dotenv.config();
 export interface SongGenerationResult {
   success: boolean;
   songName?: string;
+  usedDescription?: string;
   error?: string;
 }
 
@@ -22,7 +23,7 @@ export class AISongService {
 
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     this.model = this.genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash-preview-05-20",
     });
   }
 
@@ -77,12 +78,12 @@ export class AISongService {
     }
 
     // Add popularity level
-    if (popularity.length > 0 && Math.random() > 0.6) {
+    if (popularity.length > 0) {
       descriptions.push(`by a ${this.getRandomElement(popularity)} artist`);
     }
 
     // Add another adjective for texture
-    if (adjectives.length > 0 && Math.random() > 0.5) {
+    if (adjectives.length > 0) {
       descriptions.push(`with a ${this.getRandomElement(adjectives)} vibe`);
     }
 
@@ -149,6 +150,7 @@ Song name:`;
       return {
         success: true,
         songName: cleanSongName,
+        usedDescription: description,
       };
     } catch (error) {
       console.error("Error generating song with AI:", error);

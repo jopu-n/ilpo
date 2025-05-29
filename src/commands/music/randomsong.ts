@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { MusicManager } from "../../managers/MusicManager";
 import { AISongService } from "../../services/AISongService";
+import "../../types"; // Import types to get global declarations
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,7 +22,8 @@ module.exports = {
   async execute(interaction: ChatInputCommandInteraction) {
     const member = interaction.member as GuildMember;
     const channel = member?.voice.channel;
-    const description = interaction.options.getString("description");
+    const userDescription = interaction.options.getString("description");
+    const description = userDescription || undefined;
 
     if (!channel) {
       return interaction.reply(
@@ -46,13 +48,13 @@ module.exports = {
     try {
       // Send initial message
       await interaction.editReply(
-        description
-          ? `🤖 AI miettii biisii kuvauksel "${description}"...`
+        userDescription
+          ? `🤖 AI miettii biisii kuvauksel "${userDescription}"...`
           : "🤖 AI miettii täysin satunnaist biisii..."
       );
 
       // Generate song with AI
-      const result = await aiSongService.generateSong(description || undefined);
+      const result = await aiSongService.generateSong(description);
 
       if (!result.success) {
         return interaction.editReply(
@@ -61,10 +63,14 @@ module.exports = {
       }
 
       const songName = result.songName!;
+      const usedDescription =
+        result.usedDescription || userDescription || "satunnainen kuvaus";
 
       // Update message
       await interaction.editReply(
-        `🎵 AI ehdotti: **${songName}**\nHaetaa YouTubesta...`
+        userDescription
+          ? `🎵 AI ehdotti: **${songName}**\nHaetaa YouTubesta...`
+          : `🎵 AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\nHaetaa YouTubesta...`
       );
 
       // Play the suggested song
@@ -79,13 +85,19 @@ module.exports = {
 
       if (playResult.success) {
         return interaction.editReply(
-          `✅ AI ehdotti: **${songName}**\n${
-            playResult.message || "Biisi soitetaa!"
-          }`
+          userDescription
+            ? `✅ AI ehdotti: **${songName}**\n${
+                playResult.message || "Biisi soitetaa!"
+              }`
+            : `✅ AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\n${
+                playResult.message || "Biisi soitetaa!"
+              }`
         );
       } else {
         return interaction.editReply(
-          `⚠️ AI ehdotti: **${songName}**\nMutta ${playResult.message}`
+          userDescription
+            ? `⚠️ AI ehdotti: **${songName}**\nMutta ${playResult.message}`
+            : `⚠️ AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\nMutta ${playResult.message}`
         );
       }
     } catch (error) {

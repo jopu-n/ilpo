@@ -210,12 +210,13 @@ export class PrefixCommandHandler {
           return;
         }
 
-        const description = args.join(" ").trim() || undefined;
+        const userDescription = args.join(" ").trim();
+        const description = userDescription || undefined;
 
         // Send initial message
         const loadingMessage = await message.reply(
-          description
-            ? `🤖 AI miettii biisii kuvauksel "${description}"...`
+          userDescription
+            ? `🤖 AI miettii biisii kuvauksel "${userDescription}"...`
             : "🤖 AI miettii täysin satunnaist biisii..."
         );
 
@@ -231,10 +232,14 @@ export class PrefixCommandHandler {
           }
 
           const songName = result.songName!;
+          const usedDescription =
+            result.usedDescription || userDescription || "satunnainen kuvaus";
 
           // Update loading message
           await loadingMessage.edit(
-            `🎵 AI ehdotti: **${songName}**\nHaetaa YouTubesta...`
+            userDescription
+              ? `🎵 AI ehdotti: **${songName}**\nHaetaa YouTubesta...`
+              : `🎵 AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\nHaetaa YouTubesta...`
           );
 
           // Play the suggested song
@@ -249,13 +254,19 @@ export class PrefixCommandHandler {
 
           if (playResult.success) {
             await loadingMessage.edit(
-              `✅ AI ehdotti: **${songName}**\n${
-                playResult.message || "Biisi soitetaa!"
-              }`
+              userDescription
+                ? `✅ AI ehdotti: **${songName}**\n${
+                    playResult.message || "Biisi soitetaa!"
+                  }`
+                : `✅ AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\n${
+                    playResult.message || "Biisi soitetaa!"
+                  }`
             );
           } else {
             await loadingMessage.edit(
-              `⚠️ AI ehdotti: **${songName}**\nMutta ${playResult.message}`
+              userDescription
+                ? `⚠️ AI ehdotti: **${songName}**\nMutta ${playResult.message}`
+                : `⚠️ AI ehdotti: **${songName}**\n📝 Käytetty kuvaus: "${usedDescription}"\nMutta ${playResult.message}`
             );
           }
         } catch (error) {
