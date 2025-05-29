@@ -23,8 +23,8 @@ const client = new Client({
 // Create Discord Player instance
 const player = new Player(client);
 
-// Create prefix command handler
-const prefixHandler = new PrefixCommandHandler();
+// Create prefix command handler - PASS THE PLAYER INSTANCE HERE
+const prefixHandler = new PrefixCommandHandler(player);
 
 // Register YouTube extractor with better configuration
 player.extractors.register(YoutubeiExtractor, {
@@ -35,7 +35,7 @@ player.extractors.register(YoutubeiExtractor, {
 
 // Load player events
 player.events.on("audioTrackAdd", (queue, track) => {
-  queue.metadata.channel.send(` ${track.title} laitettii jonoo!`);
+  queue.metadata.channel.send(` **${track.title}** laitettii jonoo!`);
 });
 
 player.events.on("audioTracksAdd", (queue, tracks) => {
@@ -43,7 +43,7 @@ player.events.on("audioTracksAdd", (queue, tracks) => {
 });
 
 player.events.on("playerStart", (queue, track) => {
-  queue.metadata.channel.send(`Alettii soittaa biisii ${track.title}!`);
+  queue.metadata.channel.send(`Alettii soittaa biisii **${track.title}**!`);
 });
 
 player.events.on("emptyQueue", (queue) => {
@@ -117,7 +117,7 @@ client.on("messageCreate", async (message) => {
   await prefixHandler.handleMessage(message);
 });
 
-// Make player available globally for commands
+// Make player available globally for commands (for slash commands)
 declare global {
   var player: Player;
 }

@@ -1,20 +1,19 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { useQueue } from "discord-player";
+import { MusicManager } from "../../managers/MusicManager";
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("skip")
     .setDescription("Hyppää nykysen biisin yli"),
   async execute(interaction: ChatInputCommandInteraction) {
-    const queue = useQueue(interaction.guild!.id);
+    const musicManager = new MusicManager(global.player);
 
-    if (!queue || !queue.currentTrack) {
-      return interaction.reply("Ei ol mittä musiikki soimas!");
+    const result = await musicManager.skip(interaction.guild!.id);
+
+    if (result.success) {
+      return interaction.reply(result.message);
+    } else {
+      return interaction.reply(result.message);
     }
-
-    const currentTrack = queue.currentTrack;
-    queue.node.skip();
-
-    return interaction.reply(`Biisi ${currentTrack.title} ohitettii!`);
   },
 };

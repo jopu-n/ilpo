@@ -1,22 +1,19 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { useQueue } from "discord-player";
+import { MusicManager } from "../../managers/MusicManager";
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("pause")
     .setDescription("Pysäytä nykynen biisi"),
   async execute(interaction: ChatInputCommandInteraction) {
-    const queue = useQueue(interaction.guild!.id);
+    const musicManager = new MusicManager(global.player);
 
-    if (!queue || !queue.currentTrack) {
-      return interaction.reply("Ei ol mittä musiikki soimas!");
+    const result = await musicManager.pause(interaction.guild!.id);
+
+    if (result.success) {
+      return interaction.reply(result.message);
+    } else {
+      return interaction.reply(result.message);
     }
-
-    if (queue.node.isPaused()) {
-      return interaction.reply("Musiikki o jo pysäytettynä!");
-    }
-
-    queue.node.pause();
-    return interaction.reply("Musiikki pysäytettii!");
   },
 };

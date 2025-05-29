@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { useQueue } from "discord-player";
+import { MusicManager } from "../../managers/MusicManager";
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -13,19 +13,18 @@ module.exports = {
         .setMaxValue(100)
     ),
   async execute(interaction: ChatInputCommandInteraction) {
-    const queue = useQueue(interaction.guild!.id);
-
-    if (!queue || !queue.currentTrack) {
-      return interaction.reply("Ei ol mittä musiikki soimas!");
-    }
-
+    const musicManager = new MusicManager(global.player);
     const volume = interaction.options.getInteger("level");
 
-    if (volume === null) {
-      return interaction.reply(`Äänenvoimakkuus o nyt ${queue.node.volume}%`);
-    }
+    const result = await musicManager.volume(
+      interaction.guild!.id,
+      volume || undefined
+    );
 
-    queue.node.setVolume(volume);
-    return interaction.reply(`Äänenvoimakkuus pistetty ${volume} prossaan!`);
+    if (result.success) {
+      return interaction.reply(result.message);
+    } else {
+      return interaction.reply(result.message);
+    }
   },
 };
