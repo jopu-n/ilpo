@@ -1,13 +1,14 @@
-# Use Node.js 18 LTS as base image
-FROM node:18-alpine
+# Use Node.js 18 LTS (use full image instead of alpine)
+FROM node:18
 
 # Install system dependencies for audio processing
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
     ffmpeg \
-    libc6-compat
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -28,8 +29,7 @@ RUN mkdir -p resources
 RUN npm run build
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S ilpo -u 1001
+RUN groupadd -r nodejs && useradd -r -g nodejs ilpo
 
 # Change ownership of app directory
 RUN chown -R ilpo:nodejs /app
