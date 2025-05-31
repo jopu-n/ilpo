@@ -1,5 +1,5 @@
 # Use Node.js 18 LTS (use full image instead of alpine)
-FROM node:18
+FROM node:20
 
 # Install system dependencies for audio processing
 RUN apt-get update && apt-get install -y \
