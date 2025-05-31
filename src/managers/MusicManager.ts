@@ -14,6 +14,9 @@ import {
   VoiceConnectionStatus,
   VoiceConnection,
   AudioPlayer,
+  entersState,
+  VoiceConnectionDisconnectReason,
+  StreamType,
 } from "@discordjs/voice";
 
 export interface MP3FileInfo {
@@ -115,7 +118,7 @@ export class MusicManager {
   }
 
   /**
-   * Play direct audio file using @discordjs/voice
+   * Play direct audio file using @discordjs/voice with enhanced error handling
    */
   private async playDirectAudio(
     channel: VoiceBasedChannel,
@@ -124,25 +127,109 @@ export class MusicManager {
     requestedBy: any,
     guildId: string
   ): Promise<MusicResult> {
+    let connection: VoiceConnection | null = null;
+    let audioPlayer: AudioPlayer | null = null;
+
     try {
+      console.log(`[MP3] Attempting to play: ${audioName} from ${audioUrl}`);
+
       // Stop any existing discord-player queue first
       const existingQueue = useQueue(guildId);
       if (existingQueue && existingQueue.currentTrack) {
+        console.log("[MP3] Stopping existing queue");
         existingQueue.delete();
       }
 
-      // Create voice connection
-      const connection = joinVoiceChannel({
+      // Validate channel permissions
+      if (!channel.joinable) {
+        return {
+          success: false,
+          message: "Ei oikeuksii liittyy äänikanavas!",
+          error: "No permission to join voice channel",
+        };
+      }
+
+      console.log(
+        `[MP3] Creating voice connection to channel: ${channel.name}`
+      );
+
+      // Create voice connection with timeout
+      connection = joinVoiceChannel({
         channelId: channel.id,
         guildId: guildId,
         adapterCreator: channel.guild.voiceAdapterCreator,
       });
 
-      // Create audio player and resource
-      const audioPlayer = createAudioPlayer();
-      const resource = createAudioResource(audioUrl);
+      // Wait for connection to be ready
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Voice connection timeout"));
+        }, 10000); // 10 second timeout
 
-      // Update state
+        connection!.on(VoiceConnectionStatus.Ready, () => {
+          console.log("[MP3] Voice connection ready");
+          clearTimeout(timeout);
+          resolve();
+        });
+
+        connection!.on(
+          VoiceConnectionStatus.Disconnected,
+          (oldState, newState) => {
+            console.log(
+              `[MP3] Voice connection disconnected: ${oldState.status} -> ${newState.status}`
+            );
+            clearTimeout(timeout);
+            reject(
+              new Error(
+                `Voice connection disconnected: ${
+                  newState.reason || "Unknown reason"
+                }`
+              )
+            );
+          }
+        );
+
+        connection!.on(VoiceConnectionStatus.Destroyed, () => {
+          console.log("[MP3] Voice connection destroyed");
+          clearTimeout(timeout);
+          reject(new Error("Voice connection was destroyed"));
+        });
+
+        // Handle immediate ready state
+        if (connection!.state.status === VoiceConnectionStatus.Ready) {
+          console.log("[MP3] Voice connection was already ready");
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+
+      console.log(`[MP3] Creating audio resource for: ${audioUrl}`);
+
+      // Create audio player and resource with error handling
+      audioPlayer = createAudioPlayer();
+      let resource;
+
+      try {
+        resource = createAudioResource(audioUrl, {
+          inputType: StreamType.Arbitrary,
+          metadata: {
+            title: audioName,
+            url: audioUrl,
+          },
+        });
+        console.log("[MP3] Audio resource created successfully");
+      } catch (resourceError) {
+        console.error("[MP3] Failed to create audio resource:", resourceError);
+        throw new Error(
+          `Failed to create audio resource: ${
+            resourceError instanceof Error
+              ? resourceError.message
+              : "Unknown error"
+          }`
+        );
+      }
+
+      // Update state before starting playback
       this.directAudioState = {
         isPlaying: true,
         connection: connection,
@@ -155,50 +242,221 @@ export class MusicManager {
         guildId: guildId,
       };
 
-      // Set up event listeners
+      // Set up comprehensive event listeners
       audioPlayer.on(AudioPlayerStatus.Playing, () => {
-        console.log(`Alotetaa MP3:n soitto: ${audioName}`);
+        console.log(`[MP3] Successfully started playing: ${audioName}`);
       });
 
-      audioPlayer.on(AudioPlayerStatus.Idle, () => {
-        console.log(`MP3 loppu: ${audioName}`);
+      audioPlayer.on(AudioPlayerStatus.Idle, (oldState) => {
+        console.log(
+          `[MP3] Finished playing: ${audioName} (from ${oldState.status})`
+        );
         this.cleanupDirectAudio();
+      });
+
+      audioPlayer.on(AudioPlayerStatus.Buffering, () => {
+        console.log(`[MP3] Buffering: ${audioName}`);
       });
 
       audioPlayer.on("error", (error) => {
-        console.error("MP3 soitto-virhe:", error);
+        console.error(`[MP3] Audio player error for ${audioName}:`, {
+          message: error.message,
+          stack: error.stack,
+          resource: error.resource,
+        });
         this.cleanupDirectAudio();
       });
 
-      connection.on(VoiceConnectionStatus.Disconnected, () => {
+      // Enhanced connection event handling
+      connection.on(
+        VoiceConnectionStatus.Disconnected,
+        async (oldState, newState) => {
+          console.log(
+            `[MP3] Connection disconnected: ${oldState.status} -> ${newState.status}, reason: ${newState.reason}`
+          );
+
+          try {
+            // Attempt to reconnect if it was a network issue
+            if (
+              newState.reason ===
+                VoiceConnectionDisconnectReason.WebSocketClose &&
+              newState.closeCode === 4014
+            ) {
+              console.log("[MP3] Attempting to reconnect...");
+              await Promise.race([
+                entersState(
+                  connection!,
+                  VoiceConnectionStatus.Signalling,
+                  5_000
+                ),
+                entersState(
+                  connection!,
+                  VoiceConnectionStatus.Connecting,
+                  5_000
+                ),
+              ]);
+            } else {
+              // Clean up if it's not a recoverable disconnect
+              this.cleanupDirectAudio();
+            }
+          } catch (error) {
+            console.log("[MP3] Failed to reconnect, cleaning up");
+            this.cleanupDirectAudio();
+          }
+        }
+      );
+
+      connection.on(VoiceConnectionStatus.Destroyed, () => {
+        console.log("[MP3] Voice connection destroyed");
         this.cleanupDirectAudio();
       });
 
-      // Start playing
+      // Subscribe and start playing
+      console.log("[MP3] Subscribing connection to audio player");
+      const subscription = connection.subscribe(audioPlayer);
+
+      if (!subscription) {
+        throw new Error("Failed to subscribe connection to audio player");
+      }
+
+      console.log("[MP3] Starting audio playback");
       audioPlayer.play(resource);
-      connection.subscribe(audioPlayer);
+
+      // Wait a moment to ensure playback started successfully
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Playback failed to start within timeout"));
+        }, 5000);
+
+        const onPlaying = () => {
+          clearTimeout(timeout);
+          audioPlayer!.off(AudioPlayerStatus.Playing, onPlaying);
+          audioPlayer!.off("error", onError);
+          resolve();
+        };
+
+        const onError = (error: Error) => {
+          clearTimeout(timeout);
+          audioPlayer!.off(AudioPlayerStatus.Playing, onPlaying);
+          audioPlayer!.off("error", onError);
+          reject(error);
+        };
+
+        audioPlayer!.on(AudioPlayerStatus.Playing, onPlaying);
+        audioPlayer!.once("error", onError);
+
+        // Handle case where it's already playing
+        if (audioPlayer!.state.status === AudioPlayerStatus.Playing) {
+          onPlaying();
+        }
+      });
+
+      console.log(`[MP3] Successfully started playback of: ${audioName}`);
 
       return {
         success: true,
         message: `Selvä! Äänitiedosto "${audioName}" soi nyt!`,
       };
     } catch (error) {
-      console.log("MP3 soitto-virhe:", error);
+      console.error(`[MP3] Comprehensive error for ${audioName}:`, {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        audioUrl,
+        guildId,
+        channelId: channel.id,
+      });
+
+      // Enhanced cleanup on error
+      if (audioPlayer) {
+        try {
+          audioPlayer.stop(true);
+        } catch (e) {
+          console.error("[MP3] Error stopping audio player:", e);
+        }
+      }
+
+      if (connection) {
+        try {
+          connection.destroy();
+        } catch (e) {
+          console.error("[MP3] Error destroying connection:", e);
+        }
+      }
+
       this.cleanupDirectAudio();
+
+      // Return detailed error message based on error type
+      let userMessage =
+        "Jotaki meni pielee ku yritettii soittaa tuo äänitiedosto!";
+
+      if (error instanceof Error) {
+        if (
+          error.message.includes("timeout") ||
+          error.message.includes("Timeout")
+        ) {
+          userMessage =
+            "Äänitiedoston lataus kesti liian kauan! Tarkista internet-yhteys.";
+        } else if (
+          error.message.includes("permission") ||
+          error.message.includes("Permission")
+        ) {
+          userMessage = "Ei oikeuksii äänikanaval! Tarkista botin oikeudet.";
+        } else if (
+          error.message.includes("resource") ||
+          error.message.includes("Resource")
+        ) {
+          userMessage =
+            "Äänitiedoston käsittely epäonnistus! Tiedosto saattaa olla vioittunut.";
+        } else if (
+          error.message.includes("connection") ||
+          error.message.includes("Connection")
+        ) {
+          userMessage = "Yhteys äänikanaval katos! Yritä uudestaan.";
+        } else if (
+          error.message.includes("ffmpeg") ||
+          error.message.includes("FFMPEG")
+        ) {
+          userMessage =
+            "Audio-käsittely epäonnistus! Palvelimessa saattaa olla ongelma.";
+        }
+      }
+
       return {
         success: false,
         error: error,
-        message: "Jotaki meni pielee ku yritettii soittaa tuo äänitiedosto!",
+        message: `${userMessage} (${
+          error instanceof Error ? error.message : "Tuntematon virhe"
+        })`,
       };
     }
   }
 
   /**
-   * Clean up direct audio state
+   * Enhanced cleanup with better error handling
    */
   private cleanupDirectAudio(): void {
-    if (this.directAudioState.connection) {
-      this.directAudioState.connection.destroy();
+    console.log("[MP3] Cleaning up direct audio state");
+
+    try {
+      if (this.directAudioState.player) {
+        this.directAudioState.player.stop(true);
+        this.directAudioState.player.removeAllListeners();
+      }
+    } catch (error) {
+      console.error("[MP3] Error cleaning up audio player:", error);
+    }
+
+    try {
+      if (this.directAudioState.connection) {
+        if (
+          this.directAudioState.connection.state.status !==
+          VoiceConnectionStatus.Destroyed
+        ) {
+          this.directAudioState.connection.destroy();
+        }
+      }
+    } catch (error) {
+      console.error("[MP3] Error cleaning up voice connection:", error);
     }
 
     this.directAudioState = {
@@ -208,6 +466,8 @@ export class MusicManager {
       currentTrack: null,
       guildId: null,
     };
+
+    console.log("[MP3] Direct audio cleanup completed");
   }
 
   /**
