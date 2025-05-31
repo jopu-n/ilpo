@@ -34,8 +34,7 @@ RUN npm run build
 RUN ffmpeg -version
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S ilpo -u 1001
+RUN groupadd -r nodejs && useradd -r -g nodejs ilpo
 
 # Change ownership of app directory
 RUN chown -R ilpo:nodejs /app
